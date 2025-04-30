@@ -2,15 +2,17 @@
 'use client';
 
 import type * as React from 'react';
+import Image from 'next/image';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Button } from '@/components/ui/button';
+import { Skeleton } from '@/components/ui/skeleton'; // Import Skeleton
 import { Copy } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
 
 interface ShayariDisplayProps {
-  imageDataUri: string | null; // Keep for potential future use or context, but not displayed here
+  imageDataUri: string | null;
   shayariTitle: string | null;
   shayariText: string | null;
   isLoading?: boolean;
@@ -18,6 +20,7 @@ interface ShayariDisplayProps {
 }
 
 export function ShayariDisplay({
+  imageDataUri,
   shayariTitle,
   shayariText,
   isLoading = false,
@@ -44,50 +47,72 @@ export function ShayariDisplay({
     }
   };
 
-  // Updated structure: Card focuses only on Shayari text now
+  // Restore layout with Image and Shayari side-by-side on medium screens and up
   return (
-    <Card className={cn('w-full overflow-hidden', className)}>
-       <CardHeader className="flex flex-row justify-between items-start p-6 pb-2">
-         {isLoading ? (
-           <CardTitle className="h-8 w-3/4 bg-muted rounded animate-pulse"></CardTitle>
-         ) : shayariTitle ? (
-           <CardTitle>{shayariTitle}</CardTitle>
-         ) : (
-           <CardTitle className="text-muted-foreground">Shayari</CardTitle> // Placeholder title
-         )}
-         {/* Copy Button */}
-         {!isLoading && shayariText && (
-            <Button variant="ghost" size="icon" onClick={handleCopy} className="ml-auto flex-shrink-0">
-                <Copy className="h-4 w-4" />
-                <span className="sr-only">Copy Shayari</span>
-            </Button>
-        )}
-      </CardHeader>
-      <CardContent className="p-6 pt-0">
-        <div className="flex flex-col h-48"> {/* Set a fixed height or min-height */}
+    <Card className={cn('w-full overflow-hidden shadow-lg', className)}>
+      <CardContent className="p-4 md:p-6 grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6 items-start">
+        {/* Image Column */}
+        <div className="relative w-full aspect-square rounded-md overflow-hidden border">
+          {imageDataUri ? (
+            <Image
+              src={imageDataUri}
+              alt="Uploaded image for shayari generation"
+              layout="fill"
+              objectFit="contain" // Changed to contain to prevent cropping
+              className="rounded-md"
+            />
+          ) : (
+             <Skeleton className="h-full w-full" /> // Placeholder if somehow image is missing
+          )}
+        </div>
+
+        {/* Shayari Column */}
+        <div className="flex flex-col h-full">
+          <CardHeader className="flex flex-row justify-between items-start p-0 pb-2">
+             {isLoading ? (
+                 <Skeleton className="h-7 w-3/4 rounded" /> // Skeleton for title
+             ) : shayariTitle ? (
+                <CardTitle className="text-xl md:text-2xl">{shayariTitle}</CardTitle>
+             ) : (
+                <CardTitle className="text-xl md:text-2xl text-muted-foreground italic">Shayari</CardTitle> // Placeholder title
+             )}
+             {/* Copy Button */}
+             {!isLoading && shayariText && (
+                <Button variant="ghost" size="icon" onClick={handleCopy} className="ml-auto flex-shrink-0 -mt-1 -mr-1">
+                    <Copy className="h-4 w-4" />
+                    <span className="sr-only">Copy Shayari</span>
+                </Button>
+             )}
+          </CardHeader>
+
+          {/* Shayari Text Area */}
+          {/* Use a div instead of CardContent here as CardContent adds padding */}
+          <div className="flex-grow min-h-[150px] md:min-h-[200px] relative">
             {isLoading ? (
-                 <div className="space-y-2 flex-1 pt-2">
+                 <div className="space-y-2 pt-2">
                     {/* Simulate up to 6 lines for loading state */}
-                    <div className="h-4 w-full bg-muted rounded animate-pulse"></div>
-                    <div className="h-4 w-5/6 bg-muted rounded animate-pulse"></div>
-                    <div className="h-4 w-full bg-muted rounded animate-pulse"></div>
-                    <div className="h-4 w-4/6 bg-muted rounded animate-pulse"></div>
-                    <div className="h-4 w-full bg-muted rounded animate-pulse"></div>
-                    <div className="h-4 w-3/6 bg-muted rounded animate-pulse"></div>
+                    <Skeleton className="h-4 w-full rounded" />
+                    <Skeleton className="h-4 w-5/6 rounded" />
+                    <Skeleton className="h-4 w-full rounded" />
+                    <Skeleton className="h-4 w-4/6 rounded" />
+                    <Skeleton className="h-4 w-full rounded" />
+                    <Skeleton className="h-4 w-3/6 rounded" />
                  </div>
              ) : shayariText ? (
-             <ScrollArea className="flex-1 pr-4">
-                {shayariLines.map((line, index) => (
-                  <p key={index} className="mb-2 last:mb-0 text-foreground font-serif">
-                    {line || <>&nbsp;</>} {/* Render non-breaking space for empty lines */}
-                  </p>
-                ))}
-             </ScrollArea>
+                // Apply font-serif for the Devanagari font
+                 <ScrollArea className="h-full pr-4 font-serif text-lg">
+                     {shayariLines.map((line, index) => (
+                         <p key={index} className="mb-2 last:mb-0 text-foreground">
+                             {line || <>&nbsp;</>} {/* Render non-breaking space for empty lines */}
+                         </p>
+                     ))}
+                 </ScrollArea>
              ) : (
-                <p className="text-muted-foreground pt-2">
-                  {shayariTitle === null && !isLoading ? "Generate shayari to see the result here." : "Shayari text will appear here."}
+                <p className="text-muted-foreground pt-2 text-center absolute inset-0 flex items-center justify-center">
+                  {shayariTitle === null && !isLoading ? "Click 'Generate Shayari' to see the result." : "Shayari will appear here..."}
                 </p>
              )}
+          </div>
         </div>
       </CardContent>
     </Card>
