@@ -2,7 +2,7 @@
 'use client';
 
 import type * as React from 'react';
-import { useState, useRef } from 'react';
+import { useState, useRef, useCallback } from 'react';
 import { ImageUploader } from '@/components/image-uploader';
 import { ShayariDisplay } from '@/components/shayari-display';
 import { Button } from '@/components/ui/button';
@@ -13,6 +13,23 @@ import { Loader2, AlertCircle, Download, Combine } from 'lucide-react';
 import { generatePoemFromImage, type GenerateShayariFromImageOutput } from '@/ai/flows/generate-poem-from-image';
 import { overlayTextOnImage } from '@/lib/imageUtils';
 import { useToast } from '@/hooks/use-toast';
+import { Label } from '@/components/ui/label';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { cn } from '@/lib/utils';
+
+
+// Define Shayari Types
+const shayariTypes = [
+  { id: 'romantic', label: 'Romantic' },
+  { id: 'sad', label: 'Sad' },
+  { id: 'motivational', label: 'Motivational' },
+  { id: 'funny', label: 'Funny' },
+  { id: 'philosophical', label: 'Philosophical' },
+  { id: 'general', label: 'General Mood' }, // Default/fallback
+] as const; // Use 'as const' for stricter typing
+
+type ShayariTypeId = typeof shayariTypes[number]['id'];
+
 
 export default function Home() {
   const [imageDataUri, setImageDataUri] = useState<string | null>(null);
@@ -21,15 +38,17 @@ export default function Home() {
   const [isLoading, setIsLoading] = useState(false);
   const [isCombining, setIsCombining] = useState(false); // State for combining process
   const [error, setError] = useState<string | null>(null);
+  const [selectedShayariType, setSelectedShayariType] = useState<ShayariTypeId>('general'); // Default type
   const combinedImageRef = useRef<HTMLAnchorElement>(null); // Ref for download link
   const { toast } = useToast();
 
-  const handleImageUpload = (dataUri: string) => {
+  const handleImageUpload = useCallback((dataUri: string) => {
     setImageDataUri(dataUri);
     setShayariResult(null); // Reset shayari when new image is uploaded
     setCombinedImageDataUri(null); // Reset combined image
     setError(null); // Reset error
-  };
+    setSelectedShayariType('general'); // Reset type selector
+  }, []);
 
   const handleGenerateShayari = async () => {
     if (!imageDataUri) {
@@ -43,7 +62,10 @@ export default function Home() {
     setCombinedImageDataUri(null); // Clear previous combined image
 
     try {
-      const result = await generatePoemFromImage({ photoDataUri: imageDataUri });
+      const result = await generatePoemFromImage({
+          photoDataUri: imageDataUri,
+          shayariType: selectedShayariType // Pass the selected type
+        });
       setShayariResult(result);
     } catch (err) {
       console.error("Error generating shayari:", err);
@@ -111,6 +133,21 @@ export default function Home() {
       }
   };
 
+ const handleReset = useCallback(() => {
+      setImageDataUri(null);
+      setShayariResult(null);
+      setCombinedImageDataUri(null);
+      setError(null);
+      setIsLoading(false);
+      setIsCombining(false);
+      setSelectedShayariType('general');
+       // Optionally clear file input if needed
+      const inputElement = document.getElementById('image-upload') as HTMLInputElement;
+      if (inputElement) {
+          inputElement.value = '';
+      }
+  }, []);
+
 
   return (
     <main className="container mx-auto px-4 py-8 flex flex-col items-center min-h-screen">
@@ -128,7 +165,7 @@ export default function Home() {
           </Alert>
         )}
 
-        {/* Uploader or Image/Shayari Display */}
+        {/* Uploader */}
         {!imageDataUri && !combinedImageDataUri && (
              <ImageUploader
                onImageUpload={handleImageUpload}
@@ -137,56 +174,97 @@ export default function Home() {
              />
          )}
 
-         {/* Display Area: Shows uploaded image & shayari side-by-side */}
-         {imageDataUri && !combinedImageDataUri && (
-            <div className="w-full">
+         {/* Image Uploaded State */}
+         {imageDataUri && !shayariResult && !combinedImageDataUri && (
+             <div className="w-full flex flex-col items-center space-y-6 animate-fade-in">
+                 {/* Display Uploaded Image */}
+                 <Card className="w-full max-w-md overflow-hidden shadow-md">
+                    <CardContent className="p-0">
+                        <div className="relative w-full aspect-square">
+                             <Image
+                                src={imageDataUri}
+                                alt="Uploaded image"
+                                layout="fill"
+                                objectFit="contain"
+                                className="rounded-md"
+                            />
+                        </div>
+                    </CardContent>
+                 </Card>
+
+                  {/* Shayari Type Selection */}
+                  <Card className="w-full max-w-md">
+                     <CardContent className="p-4 space-y-3">
+                        <Label className="text-base font-medium">Choose Shayari Type:</Label>
+                         <RadioGroup
+                             value={selectedShayariType}
+                             onValueChange={(value: string) => setSelectedShayariType(value as ShayariTypeId)}
+                             className="grid grid-cols-2 sm:grid-cols-3 gap-3"
+                             disabled={isLoading}
+                         >
+                            {shayariTypes.map((type) => (
+                                <div key={type.id} className="flex items-center space-x-2">
+                                <RadioGroupItem value={type.id} id={`type-${type.id}`} />
+                                <Label htmlFor={`type-${type.id}`} className="cursor-pointer hover:text-primary">
+                                    {type.label}
+                                </Label>
+                                </div>
+                            ))}
+                        </RadioGroup>
+                     </CardContent>
+                  </Card>
+
+                  {/* Generate Button */}
+                 <Button
+                     onClick={handleGenerateShayari}
+                     disabled={isLoading || isCombining || !imageDataUri}
+                     size="lg"
+                 >
+                     {isLoading ? (
+                     <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Generating...
+                     </>
+                     ) : (
+                     'Generate Shayari'
+                     )}
+                 </Button>
+             </div>
+         )}
+
+
+         {/* Display Area: Shows generated shayari next to the image */}
+         {imageDataUri && shayariResult && !combinedImageDataUri && (
+            <div className="w-full animate-fade-in">
                  <ShayariDisplay
                     imageDataUri={imageDataUri}
                     shayariTitle={shayariResult?.title ?? null}
                     shayariText={shayariResult?.shayari ?? null}
-                    isLoading={isLoading}
-                    className="w-full animate-fade-in" // Add animation
+                    isLoading={isLoading} // Pass loading state if needed for skeleton inside display
+                    className="w-full mb-6"
                 />
 
                  {/* Action Buttons Below Display */}
-                 <div className="flex flex-wrap justify-center gap-4 mt-6 w-full">
-                    {!shayariResult && !isLoading && ( // Show Generate button only if no result yet
-                         <Button
-                            onClick={handleGenerateShayari}
-                            disabled={isLoading || isCombining || !imageDataUri}
-                            className="flex-grow md:flex-grow-0"
-                         >
-                             {isLoading ? (
-                             <>
-                                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                Generating...
-                             </>
-                             ) : (
-                             'Generate Shayari'
-                             )}
-                         </Button>
-                    )}
-
-                     {shayariResult && !combinedImageDataUri && ( // Show Combine button after generation
-                        <Button
-                            onClick={handleAddShayariToImage}
-                            disabled={isCombining || isLoading || !shayariResult?.shayari}
-                            variant="secondary"
-                             className="flex-grow md:flex-grow-0"
-                        >
-                            {isCombining ? (
-                            <>
-                                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                Combining...
-                            </>
-                            ) : (
-                             <>
-                                <Combine className="mr-2 h-4 w-4" />
-                                Add Shayari to Image
-                             </>
-                            )}
-                        </Button>
-                     )}
+                 <div className="flex flex-wrap justify-center gap-4 mt-4 w-full">
+                     {/* Combine Button */}
+                    <Button
+                        onClick={handleAddShayariToImage}
+                        disabled={isCombining || isLoading || !shayariResult?.shayari}
+                        variant="secondary"
+                        className="flex-grow md:flex-grow-0"
+                    >
+                        {isCombining ? (
+                        <>
+                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                            Combining...
+                        </>
+                        ) : (
+                         <>
+                            <Combine className="mr-2 h-4 w-4" />
+                            Add Shayari to Image
+                         </>
+                        )}
+                    </Button>
                  </div>
             </div>
          )}
@@ -220,14 +298,7 @@ export default function Home() {
          {(imageDataUri || combinedImageDataUri) && (
              <Button
                  variant="outline"
-                 onClick={() => {
-                     setImageDataUri(null);
-                     setShayariResult(null);
-                     setCombinedImageDataUri(null);
-                     setError(null);
-                     setIsLoading(false);
-                     setIsCombining(false);
-                 }}
+                 onClick={handleReset}
                  disabled={isLoading || isCombining}
                  className="mt-6" // Add margin top
              >
