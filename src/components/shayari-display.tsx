@@ -3,26 +3,26 @@
 
 import type * as React from 'react';
 import Image from 'next/image';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { cn } from '@/lib/utils';
 
-interface PoemDisplayProps {
+interface ShayariDisplayProps {
   imageDataUri: string | null;
-  poemTitle: string | null;
-  poemText: string | null;
+  shayariTitle: string | null;
+  shayariText: string | null;
   isLoading?: boolean;
   className?: string;
 }
 
-export function PoemDisplay({
+export function ShayariDisplay({
   imageDataUri,
-  poemTitle,
-  poemText,
+  shayariTitle,
+  shayariText,
   isLoading = false,
   className,
-}: PoemDisplayProps) {
-  const poemLines = poemText?.split('\n') ?? [];
+}: ShayariDisplayProps) {
+  const shayariLines = shayariText?.split('\n') ?? [];
 
   return (
     <Card className={cn('w-full overflow-hidden', className)}>
@@ -47,30 +47,32 @@ export function PoemDisplay({
           <CardHeader className="p-0 pb-4">
             {isLoading ? (
                <CardTitle className="h-8 w-3/4 bg-muted rounded animate-pulse"></CardTitle>
-             ) : poemTitle ? (
-               <CardTitle>{poemTitle}</CardTitle>
+             ) : shayariTitle ? (
+               <CardTitle>{shayariTitle}</CardTitle>
              ) : (
-               <CardTitle className="text-muted-foreground">Poem will appear here</CardTitle>
+               <CardTitle className="text-muted-foreground">Shayari will appear here</CardTitle>
              )}
           </CardHeader>
             {isLoading ? (
                  <div className="space-y-2 flex-1">
+                    {/* Simulate up to 6 lines for loading state */}
                     <div className="h-4 w-full bg-muted rounded animate-pulse"></div>
                     <div className="h-4 w-5/6 bg-muted rounded animate-pulse"></div>
                     <div className="h-4 w-full bg-muted rounded animate-pulse"></div>
                     <div className="h-4 w-4/6 bg-muted rounded animate-pulse"></div>
                     <div className="h-4 w-full bg-muted rounded animate-pulse"></div>
+                    <div className="h-4 w-3/6 bg-muted rounded animate-pulse"></div>
                  </div>
-             ) : poemText ? (
+             ) : shayariText ? (
              <ScrollArea className="flex-1 pr-4">
-                {poemLines.map((line, index) => (
-                  <p key={index} className="mb-2 last:mb-0 text-foreground">
+                {shayariLines.map((line, index) => (
+                  <p key={index} className="mb-2 last:mb-0 text-foreground font-serif"> {/* Added font-serif for potentially better Hindi rendering */}
                     {line || <>&nbsp;</>} {/* Render non-breaking space for empty lines */}
                   </p>
                 ))}
              </ScrollArea>
              ) : !isLoading && (
-                <p className="text-muted-foreground">Upload an image to generate a poem.</p>
+                <p className="text-muted-foreground">Upload an image to generate a shayari.</p>
              )}
 
         </div>
@@ -79,7 +81,7 @@ export function PoemDisplay({
   );
 }
 
-// Add simple fade-in animation
+// Add simple fade-in animation (keep existing style injection)
 const style = `
 @keyframes fadeIn {
   from { opacity: 0; }
@@ -95,8 +97,14 @@ const style = `
 
 // Inject styles into the head
 if (typeof window !== 'undefined') {
-  const styleSheet = document.createElement("style");
-  styleSheet.type = "text/css";
-  styleSheet.innerText = style;
-  document.head.appendChild(styleSheet);
+  // Ensure style is injected only once or manage updates if needed
+  const existingStyleSheet = document.getElementById("shayari-display-style");
+  if (!existingStyleSheet) {
+      const styleSheet = document.createElement("style");
+      styleSheet.id = "shayari-display-style";
+      styleSheet.type = "text/css";
+      styleSheet.innerText = style;
+      document.head.appendChild(styleSheet);
+  }
 }
+```

@@ -2,11 +2,11 @@
 
 'use server';
 /**
- * @fileOverview Generates a poem based on the content and mood of an image.
+ * @fileOverview Generates a short Hindi shayari based on the content and mood of an image.
  *
- * - generatePoemFromImage - A function that handles the poem generation process.
+ * - generatePoemFromImage - A function that handles the shayari generation process.
  * - GeneratePoemFromImageInput - The input type for the generatePoemFromImage function.
- * - GeneratePoemFromImageOutput - The return type for the generatePoemFromImage function.
+ * - GenerateShayariFromImageOutput - The return type for the generatePoemFromImage function.
  */
 
 import {ai} from '@/ai/ai-instance';
@@ -16,57 +16,58 @@ const GeneratePoemFromImageInputSchema = z.object({
   photoDataUri: z
     .string()
     .describe(
-      "A photo to inspire the poem, as a data URI that must include a MIME type and use Base64 encoding. Expected format: 'data:<mimetype>;base64,<encoded_data>'."
+      "A photo to inspire the poem, as a data URI that must include a MIME type (image/jpeg, image/png, image/webp, image/gif) and use Base64 encoding. Expected format: 'data:<mimetype>;base64,<encoded_data>'."
     ),
 });
 export type GeneratePoemFromImageInput = z.infer<typeof GeneratePoemFromImageInputSchema>;
 
-const GeneratePoemFromImageOutputSchema = z.object({
-  title: z.string().describe('The title of the poem.'),
-  poem: z.string().describe('The generated poem based on the image.'),
+const GenerateShayariFromImageOutputSchema = z.object({
+  title: z.string().describe('The title of the shayari (Hindi or English).'),
+  shayari: z.string().describe('The generated short Hindi shayari (max 6 lines) based on the image.'),
 });
-export type GeneratePoemFromImageOutput = z.infer<typeof GeneratePoemFromImageOutputSchema>;
+export type GenerateShayariFromImageOutput = z.infer<typeof GenerateShayariFromImageOutputSchema>;
 
-export async function generatePoemFromImage(input: GeneratePoemFromImageInput): Promise<GeneratePoemFromImageOutput> {
-  return generatePoemFromImageFlow(input);
+// Renamed function for clarity, but keeping original export name for compatibility if needed elsewhere (though page.tsx will be updated)
+// For consistency, let's keep the function name the same as the file/flow name, matching the original structure.
+// The functionality changes, but the "interface" to the frontend remains similar.
+export async function generatePoemFromImage(input: GeneratePoemFromImageInput): Promise<GenerateShayariFromImageOutput> {
+  return generateShayariFromImageFlow(input);
 }
 
 const prompt = ai.definePrompt({
-  name: 'generatePoemFromImagePrompt',
+  name: 'generateShayariFromImagePrompt', // Renamed prompt
   input: {
     schema: z.object({
       photoDataUri: z
         .string()
         .describe(
-          "A photo to inspire the poem, as a data URI that must include a MIME type and use Base64 encoding. Expected format: 'data:<mimetype>;base64,<encoded_data>'."
+          "A photo to inspire the shayari, as a data URI that must include a MIME type (image/jpeg, image/png, image/webp, image/gif) and use Base64 encoding. Expected format: 'data:<mimetype>;base64,<encoded_data>'."
         ),
     }),
   },
   output: {
-    schema: z.object({
-      title: z.string().describe('The title of the poem.'),
-      poem: z.string().describe('The generated poem based on the image.'),
-    }),
+    schema: GenerateShayariFromImageOutputSchema, // Use the updated output schema
   },
-  prompt: `You are a poet laureate, skilled in crafting evocative poems. Analyze the image provided and write a poem that captures its essence, themes, and emotions. The poem should have a title.
+  prompt: `You are a skilled shayar (Hindi poet). Analyze the image provided and write a short shayari in Hindi (maximum 6 lines) that captures its essence, themes, and emotions. The shayari should have a title (in Hindi or English).
 
 Image: {{media url=photoDataUri}}
 
-Respond with a title and poem.
+Respond with a title and the shayari. Ensure the shayari text itself is in Hindi script and does not exceed 6 lines.
 `,
 });
 
-const generatePoemFromImageFlow = ai.defineFlow<
+const generateShayariFromImageFlow = ai.defineFlow<
   typeof GeneratePoemFromImageInputSchema,
-  typeof GeneratePoemFromImageOutputSchema
+  typeof GenerateShayariFromImageOutputSchema // Use updated output schema here
 >(
   {
-    name: 'generatePoemFromImageFlow',
+    name: 'generateShayariFromImageFlow', // Renamed flow
     inputSchema: GeneratePoemFromImageInputSchema,
-    outputSchema: GeneratePoemFromImageOutputSchema,
+    outputSchema: GenerateShayariFromImageOutputSchema, // Use updated output schema here
   },
   async input => {
     const {output} = await prompt(input);
+    // Add extra validation/check if needed, e.g., line count, although trusting the LLM for now.
     return output!;
   }
 );
