@@ -74,7 +74,7 @@ export default function Home() {
             setError("The uploaded image format might not be fully supported. Please try a standard format like JPG or PNG.");
        } else if (errorMessage.includes('400 Bad Request') || errorMessage.includes('model reference/gemini')) {
              setError("Could not generate shayari. The AI model might be unavailable or the image content could not be processed. Please try again later or with a different image.");
-       } else if (errorMessage.includes('503 Service Unavailable')) {
+       } else if (errorMessage.includes('503 Service Unavailable')) { // Specific check for 503 error
            setError("The AI service is currently overloaded. Please wait a moment and try again.");
        }
         else {
@@ -335,3 +335,4 @@ if (typeof window !== 'undefined') {
       document.head.appendChild(styleSheet);
   }
 }
+
