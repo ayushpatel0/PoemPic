@@ -99,8 +99,8 @@ export function ShayariDisplay({
                     <Skeleton className="h-4 w-3/6 rounded" />
                  </div>
              ) : shayariText ? (
-                // Apply font-serif for the Devanagari font
-                 <ScrollArea className="h-full pr-4 font-serif text-lg">
+                // Use default font (Inter)
+                 <ScrollArea className="h-full pr-4 text-lg">
                      {shayariLines.map((line, index) => (
                          <p key={index} className="mb-2 last:mb-0 text-foreground">
                              {line || <>&nbsp;</>} {/* Render non-breaking space for empty lines */}

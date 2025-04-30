@@ -13,7 +13,7 @@ export default {
   	extend: {
        fontFamily: {
           sans: ['var(--font-inter)', ...fontFamily.sans], // Set Inter as default sans-serif
-          serif: ['var(--font-noto-sans-devanagari)', ...fontFamily.serif], // Set Noto Sans Devanagari for serif (used for shayari)
+          // Removed serif definition as Noto Sans Devanagari is no longer needed
         },
   		colors: {
   			background: 'hsl(var(--background))',

@@ -2,7 +2,7 @@
 
 'use server';
 /**
- * @fileOverview Generates a short Hindi shayari based on the content and mood of an image.
+ * @fileOverview Generates a short Hindi shayari based on the content and mood of an image, written in Roman script.
  *
  * - generatePoemFromImage - A function that handles the shayari generation process.
  * - GeneratePoemFromImageInput - The input type for the generatePoemFromImage function.
@@ -22,13 +22,12 @@ const GeneratePoemFromImageInputSchema = z.object({
 export type GeneratePoemFromImageInput = z.infer<typeof GeneratePoemFromImageInputSchema>;
 
 const GenerateShayariFromImageOutputSchema = z.object({
-  title: z.string().describe('The title of the shayari (Hindi or English).'),
-  shayari: z.string().describe('The generated short Hindi shayari (max 6 lines) based on the image.'),
+  title: z.string().describe('The title of the shayari (English or Hinglish).'),
+  shayari: z.string().describe('The generated short Hindi shayari (max 6 lines) written in Roman script (e.g., "Yeh shaam mastani...") based on the image.'),
 });
 export type GenerateShayariFromImageOutput = z.infer<typeof GenerateShayariFromImageOutputSchema>;
 
-// Renamed function for clarity, but keeping original export name for compatibility if needed elsewhere (though page.tsx will be updated)
-// For consistency, let's keep the function name the same as the file/flow name, matching the original structure.
+
 // The functionality changes, but the "interface" to the frontend remains similar.
 export async function generatePoemFromImage(input: GeneratePoemFromImageInput): Promise<GenerateShayariFromImageOutput> {
   return generateShayariFromImageFlow(input);
@@ -48,11 +47,13 @@ const prompt = ai.definePrompt({
   output: {
     schema: GenerateShayariFromImageOutputSchema, // Use the updated output schema
   },
-  prompt: `You are a skilled shayar (Hindi poet). Analyze the image provided and write a short shayari in Hindi (maximum 6 lines) that captures its essence, themes, and emotions. The shayari should have a title (in Hindi or English).
+  prompt: `You are a skilled shayar (Hindi poet). Analyze the image provided and write a short shayari in Hindi (maximum 6 lines) that captures its essence, themes, and emotions.
+
+**IMPORTANT:** Write the shayari text using the Roman alphabet (English letters), not Devanagari script. For example, write "Dil ki baat" instead of "दिल की बात". The shayari should have a title (in English or Hinglish).
 
 Image: {{media url=photoDataUri}}
 
-Respond with a title and the shayari. Ensure the shayari text itself is in Hindi script and does not exceed 6 lines.
+Respond with a title and the shayari. Ensure the shayari text itself is in Romanized Hindi and does not exceed 6 lines.
 `,
 });
 

@@ -38,7 +38,8 @@ export function overlayTextOnImage(
       const padding = options?.padding ?? 30; // Padding from bottom
       const sidePadding = padding * 1.5; // More padding from sides
       const fontBaseSize = Math.max(20, Math.min(img.width / 25, img.height / 20)); // Dynamic font size
-      const font = options?.font ?? `bold ${fontBaseSize}px 'Noto Sans Devanagari', Arial, sans-serif`; // Use Noto Sans Devanagari for better Hindi script
+      // Use a standard sans-serif font stack as the default now
+      const font = options?.font ?? `bold ${fontBaseSize}px Arial, sans-serif`;
       const fillStyle = options?.fillStyle ?? 'white';
       const strokeStyle = options?.strokeStyle ?? 'black';
       const lineWidth = options?.lineWidth ?? Math.max(1, fontBaseSize / 15); // Dynamic stroke width
