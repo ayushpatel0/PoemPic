@@ -19,7 +19,8 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body className={`${inter.className} antialiased`}> {/* Apply Inter font class */}
+      {/* Add suppressHydrationWarning to handle browser extension attribute mismatches */}
+      <body className={`${inter.className} antialiased`} suppressHydrationWarning={true}>
         {children}
         <Toaster /> {/* Add Toaster component */}
       </body>
