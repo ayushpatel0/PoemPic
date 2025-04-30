@@ -42,13 +42,14 @@ export function overlayTextOnImage(
       const font = options?.font ?? `bold ${fontBaseSize}px Arial, sans-serif`;
       const fillStyle = options?.fillStyle ?? 'white';
       const strokeStyle = options?.strokeStyle ?? 'black';
-      const lineWidth = options?.lineWidth ?? Math.max(1, fontBaseSize / 15); // Dynamic stroke width
+      // Reduced lineWidth significantly to minimize the shadow/outline effect
+      const lineWidth = options?.lineWidth ?? Math.max(0.5, fontBaseSize / 30);
       const textAlign = options?.textAlign ?? 'center';
       const textBaseline = options?.textBaseline ?? 'bottom';
       const lineSpacing = options?.lineSpacing ?? fontBaseSize * 0.3; // Spacing between lines
-      // Decreased default background opacity to make image more visible
-      const backgroundOpacity = options?.backgroundOpacity ?? 0.5; // Semi-transparent background
-      const backgroundColor = options?.backgroundColor ?? 'rgba(0, 0, 0)'; // Black background
+      // Set background opacity to 0 to remove the background rectangle
+      const backgroundOpacity = options?.backgroundOpacity ?? 0;
+      const backgroundColor = options?.backgroundColor ?? 'rgba(0, 0, 0)'; // Black background (won't show if opacity is 0)
 
       // --- Canvas Setup ---
       canvas.width = img.width;
@@ -89,7 +90,7 @@ export function overlayTextOnImage(
       // --- Calculate Text Block Dimensions ---
       const totalTextHeight = wrappedLines.length * (fontBaseSize + lineSpacing) - lineSpacing;
 
-      // --- Draw Background Rectangle ---
+      // --- Draw Background Rectangle (Will not draw if backgroundOpacity is 0) ---
       if (backgroundOpacity > 0) {
         ctx.globalAlpha = backgroundOpacity;
         ctx.fillStyle = backgroundColor;
@@ -104,14 +105,18 @@ export function overlayTextOnImage(
       }
 
       // --- Draw Text Lines ---
-       ctx.fillStyle = fillStyle; // Ensure text fill style is set after background fill
-      let currentY = canvas.height - padding - totalTextHeight + fontBaseSize; // Start drawing from bottom up
+       ctx.fillStyle = fillStyle; // Ensure text fill style is set
+       // Only apply stroke if lineWidth is greater than 0
+       const drawStroke = lineWidth > 0;
+       let currentY = canvas.height - padding - totalTextHeight + fontBaseSize; // Start drawing from bottom up
 
       wrappedLines.forEach(line => {
         const x = canvas.width / 2; // Center alignment
 
-        // Draw stroke (outline) first
-        ctx.strokeText(line, x, currentY);
+        // Draw stroke (outline) first if needed
+        if (drawStroke) {
+            ctx.strokeText(line, x, currentY);
+        }
         // Draw filled text on top
         ctx.fillText(line, x, currentY);
 
