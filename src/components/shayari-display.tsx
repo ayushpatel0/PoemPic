@@ -5,7 +5,10 @@ import type * as React from 'react';
 import Image from 'next/image';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { Button } from '@/components/ui/button'; // Import Button
+import { Copy } from 'lucide-react'; // Import Copy icon
 import { cn } from '@/lib/utils';
+import { useToast } from '@/hooks/use-toast'; // Import useToast
 
 interface ShayariDisplayProps {
   imageDataUri: string | null;
@@ -22,7 +25,26 @@ export function ShayariDisplay({
   isLoading = false,
   className,
 }: ShayariDisplayProps) {
+  const { toast } = useToast();
   const shayariLines = shayariText?.split('\n') ?? [];
+
+  const handleCopy = async () => {
+    if (!shayariText) return;
+    try {
+      await navigator.clipboard.writeText(shayariText);
+      toast({
+        title: 'Copied!',
+        description: 'Shayari copied to clipboard.',
+      });
+    } catch (err) {
+      console.error('Failed to copy text: ', err);
+      toast({
+        variant: 'destructive',
+        title: 'Error',
+        description: 'Failed to copy shayari.',
+      });
+    }
+  };
 
   return (
     <Card className={cn('w-full overflow-hidden', className)}>
@@ -44,7 +66,7 @@ export function ShayariDisplay({
         </div>
 
         <div className="flex flex-col animate-fade-in animation-delay-200">
-          <CardHeader className="p-0 pb-4">
+          <CardHeader className="p-0 pb-4 flex flex-row justify-between items-start">
             {isLoading ? (
                <CardTitle className="h-8 w-3/4 bg-muted rounded animate-pulse"></CardTitle>
              ) : shayariTitle ? (
@@ -52,6 +74,13 @@ export function ShayariDisplay({
              ) : (
                <CardTitle className="text-muted-foreground">Shayari will appear here</CardTitle>
              )}
+             {/* Add Copy Button */}
+             {!isLoading && shayariText && (
+                <Button variant="ghost" size="icon" onClick={handleCopy} className="ml-auto flex-shrink-0">
+                    <Copy className="h-4 w-4" />
+                    <span className="sr-only">Copy Shayari</span>
+                </Button>
+            )}
           </CardHeader>
             {isLoading ? (
                  <div className="space-y-2 flex-1">
@@ -72,7 +101,7 @@ export function ShayariDisplay({
                 ))}
              </ScrollArea>
              ) : !isLoading && (
-                <p className="text-muted-foreground">Upload an image to generate a shayari.</p>
+                <p className="text-muted-foreground">Upload an image and click 'Generate Shayari' to see the result.</p>
              )}
 
         </div>
