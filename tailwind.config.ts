@@ -1,4 +1,6 @@
+
 import type { Config } from "tailwindcss";
+import { fontFamily } from 'tailwindcss/defaultTheme'; // Import defaultTheme
 
 export default {
     darkMode: ["class"],
@@ -9,6 +11,10 @@ export default {
   ],
   theme: {
   	extend: {
+       fontFamily: {
+          sans: ['var(--font-inter)', ...fontFamily.sans], // Set Inter as default sans-serif
+          serif: ['var(--font-noto-sans-devanagari)', ...fontFamily.serif], // Set Noto Sans Devanagari for serif (used for shayari)
+        },
   		colors: {
   			background: 'hsl(var(--background))',
   			foreground: 'hsl(var(--foreground))',

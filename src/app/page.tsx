@@ -2,29 +2,36 @@
 'use client';
 
 import type * as React from 'react';
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { ImageUploader } from '@/components/image-uploader';
-import { ShayariDisplay } from '@/components/shayari-display'; // Updated import
+import { ShayariDisplay } from '@/components/shayari-display';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Loader2, AlertCircle } from 'lucide-react';
-// Import the updated flow function and output type
+import { Card, CardContent } from '@/components/ui/card'; // Import Card components
+import Image from 'next/image'; // Import Next Image
+import { Loader2, AlertCircle, Download, Combine } from 'lucide-react';
 import { generatePoemFromImage, type GenerateShayariFromImageOutput } from '@/ai/flows/generate-poem-from-image';
+import { overlayTextOnImage } from '@/lib/imageUtils'; // Import the utility function
+import { useToast } from '@/hooks/use-toast';
 
 export default function Home() {
   const [imageDataUri, setImageDataUri] = useState<string | null>(null);
-  // Renamed state variable and updated type
   const [shayariResult, setShayariResult] = useState<GenerateShayariFromImageOutput | null>(null);
+  const [combinedImageDataUri, setCombinedImageDataUri] = useState<string | null>(null); // State for the combined image
   const [isLoading, setIsLoading] = useState(false);
+  const [isCombining, setIsCombining] = useState(false); // State for combining process
   const [error, setError] = useState<string | null>(null);
+  const combinedImageRef = useRef<HTMLAnchorElement>(null); // Ref for download link
+  const { toast } = useToast();
 
   const handleImageUpload = (dataUri: string) => {
     setImageDataUri(dataUri);
     setShayariResult(null); // Reset shayari when new image is uploaded
+    setCombinedImageDataUri(null); // Reset combined image
     setError(null); // Reset error
   };
 
-  const handleGenerateShayari = async () => { // Renamed handler function
+  const handleGenerateShayari = async () => {
     if (!imageDataUri) {
       setError("Please upload an image first.");
       return;
@@ -32,33 +39,82 @@ export default function Home() {
 
     setIsLoading(true);
     setError(null);
-    setShayariResult(null); // Clear previous shayari immediately
+    setShayariResult(null); // Clear previous shayari
+    setCombinedImageDataUri(null); // Clear previous combined image
 
     try {
-      // Call the flow function (keeping original name for now)
       const result = await generatePoemFromImage({ photoDataUri: imageDataUri });
       setShayariResult(result);
     } catch (err) {
       console.error("Error generating shayari:", err);
       const errorMessage = err instanceof Error ? err.message : "An unexpected error occurred while generating the shayari.";
-      // Check for specific API error message
        if (errorMessage.includes('application/octet-stream')) {
             setError("The uploaded image format might not be fully supported. Please try a standard format like JPG or PNG.");
-       } else {
+       } else if (errorMessage.includes('400 Bad Request')) {
+            setError("There was an issue generating the shayari. The AI model might be temporarily unavailable or the request was malformed. Please try again later.");
+       }
+        else {
            setError(errorMessage);
        }
-      setShayariResult(null); // Ensure shayari is cleared on error
-      setImageDataUri(null); // Reset image data URI on error
+      setShayariResult(null);
+      setImageDataUri(null); // Reset image on generation error to force re-upload if needed
     } finally {
       setIsLoading(false);
     }
   };
 
+  const handleAddShayariToImage = async () => {
+     if (!imageDataUri || !shayariResult?.shayari) {
+        toast({
+          variant: "destructive",
+          title: "Error",
+          description: "Cannot add shayari to image. Ensure image is uploaded and shayari is generated.",
+        });
+        return;
+    }
+    setIsCombining(true);
+    setError(null); // Clear previous errors
+    try {
+        const combinedImage = await overlayTextOnImage(imageDataUri, shayariResult.shayari);
+        setCombinedImageDataUri(combinedImage);
+        toast({
+            title: "Success!",
+            description: "Shayari added to the image. You can now download it.",
+        });
+    } catch (err) {
+        console.error("Error combining image and text:", err);
+        setError("Failed to add shayari to the image. Please try again.");
+         toast({
+            variant: "destructive",
+            title: "Combining Error",
+            description: "Could not overlay the shayari onto the image.",
+        });
+    } finally {
+        setIsCombining(false);
+    }
+  };
+
+  const handleDownload = () => {
+      if (combinedImageRef.current && combinedImageDataUri) {
+          combinedImageRef.current.href = combinedImageDataUri;
+          // Suggest a filename (e.g., based on shayari title or timestamp)
+          const safeTitle = shayariResult?.title?.replace(/[^a-z0-9]/gi, '_').toLowerCase() || 'poem_pic';
+          combinedImageRef.current.download = `${safeTitle}_${Date.now()}.png`;
+          combinedImageRef.current.click();
+      } else {
+           toast({
+                variant: "destructive",
+                title: "Download Error",
+                description: "Could not prepare the image for download.",
+            });
+      }
+  };
+
+
   return (
     <main className="container mx-auto px-4 py-8 flex flex-col items-center min-h-screen">
       <header className="text-center mb-12">
         <h1 className="text-4xl font-bold text-primary mb-2">PoemPic</h1>
-        {/* Updated description */}
         <p className="text-lg text-muted-foreground">Generate beautiful Hindi shayari inspired by your photos.</p>
       </header>
 
@@ -71,37 +127,111 @@ export default function Home() {
           </Alert>
         )}
 
-        <ImageUploader
-          onImageUpload={handleImageUpload}
-          disabled={isLoading}
-          className="w-full md:w-3/4 lg:w-1/2"
-        />
+        {!imageDataUri && ( // Only show uploader if no image is present
+             <ImageUploader
+               onImageUpload={handleImageUpload}
+               disabled={isLoading || isCombining}
+               className="w-full md:w-3/4 lg:w-1/2"
+             />
+         )}
 
-        {imageDataUri && (
-          <Button
-            onClick={handleGenerateShayari} // Updated onClick handler
-            disabled={isLoading || !imageDataUri}
-            className="w-full md:w-auto"
-          >
-            {isLoading ? (
-              <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Generating Shayari...
-              </>
-            ) : (
-              'Generate Shayari' // Updated button text
-            )}
-          </Button>
+
+        {/* Display Area: Shows uploaded image & shayari OR combined image */}
+         {imageDataUri && (
+            <>
+            <ShayariDisplay
+                imageDataUri={imageDataUri}
+                shayariTitle={shayariResult?.title ?? null}
+                shayariText={shayariResult?.shayari ?? null}
+                isLoading={isLoading}
+                className="w-full"
+            />
+
+             {/* Action Buttons */}
+             <div className="flex flex-wrap justify-center gap-4 w-full">
+                {!shayariResult && !isLoading && ( // Show Generate button only if no result yet
+                     <Button
+                        onClick={handleGenerateShayari}
+                        disabled={isLoading || isCombining || !imageDataUri}
+                        className="flex-grow md:flex-grow-0"
+                     >
+                         {isLoading ? (
+                         <>
+                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                            Generating...
+                         </>
+                         ) : (
+                         'Generate Shayari'
+                         )}
+                     </Button>
+                )}
+
+                 {shayariResult && !combinedImageDataUri && ( // Show Combine button after generation
+                    <Button
+                        onClick={handleAddShayariToImage}
+                        disabled={isCombining || isLoading || !shayariResult?.shayari}
+                        variant="secondary"
+                         className="flex-grow md:flex-grow-0"
+                    >
+                        {isCombining ? (
+                        <>
+                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                            Combining...
+                        </>
+                        ) : (
+                         <>
+                            <Combine className="mr-2 h-4 w-4" />
+                            Add Shayari to Image
+                         </>
+                        )}
+                    </Button>
+                 )}
+            </div>
+            </>
+         )}
+
+
+        {/* Combined Image Display and Download */}
+        {combinedImageDataUri && (
+          <Card className="w-full mt-8 animate-fade-in">
+            <CardContent className="p-6 flex flex-col items-center space-y-4">
+              <h2 className="text-2xl font-semibold text-center">Your PoemPic is Ready!</h2>
+              <div className="relative w-full max-w-md aspect-square border rounded-md overflow-hidden">
+                 <Image
+                    src={combinedImageDataUri}
+                    alt="Image with overlayed shayari"
+                    layout="fill"
+                    objectFit="contain"
+                    className="rounded-md"
+                 />
+              </div>
+              <Button onClick={handleDownload} disabled={isCombining} className="w-full md:w-auto">
+                <Download className="mr-2 h-4 w-4" />
+                Download Image
+              </Button>
+              {/* Hidden link for triggering download */}
+              <a ref={combinedImageRef} style={{ display: 'none' }} download></a>
+            </CardContent>
+          </Card>
         )}
 
-        {/* Use the ShayariDisplay component and pass relevant props */}
-        <ShayariDisplay
-          imageDataUri={imageDataUri}
-          shayariTitle={shayariResult?.title ?? null}
-          shayariText={shayariResult?.shayari ?? null} // Pass shayari text
-          isLoading={isLoading}
-          className="w-full"
-        />
+         {/* Button to upload a new image if one is already processed */}
+         {imageDataUri && (shayariResult || combinedImageDataUri) && (
+             <Button
+                 variant="outline"
+                 onClick={() => {
+                     setImageDataUri(null);
+                     setShayariResult(null);
+                     setCombinedImageDataUri(null);
+                     setError(null);
+                 }}
+                 disabled={isLoading || isCombining}
+                 className="mt-4"
+             >
+                 Upload New Image
+             </Button>
+         )}
+
       </div>
 
        <footer className="mt-auto pt-8 text-center text-sm text-muted-foreground">
@@ -109,4 +239,25 @@ export default function Home() {
         </footer>
     </main>
   );
+}
+
+// Keep fade-in animation styles (assuming they are injected by ShayariDisplay or elsewhere)
+const style = `
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.animate-fade-in {
+  animation: fadeIn 0.6s ease-out forwards;
+}
+`;
+// Inject styles if needed (consider moving to globals.css or layout if used widely)
+if (typeof window !== 'undefined') {
+  const styleId = 'page-fade-in-style';
+  if (!document.getElementById(styleId)) {
+      const styleSheet = document.createElement("style");
+      styleSheet.id = styleId;
+      styleSheet.innerText = style;
+      document.head.appendChild(styleSheet);
+  }
 }
