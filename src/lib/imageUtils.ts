@@ -46,7 +46,8 @@ export function overlayTextOnImage(
       const textAlign = options?.textAlign ?? 'center';
       const textBaseline = options?.textBaseline ?? 'bottom';
       const lineSpacing = options?.lineSpacing ?? fontBaseSize * 0.3; // Spacing between lines
-      const backgroundOpacity = options?.backgroundOpacity ?? 0.6; // Semi-transparent background
+      // Decreased default background opacity to make image more visible
+      const backgroundOpacity = options?.backgroundOpacity ?? 0.5; // Semi-transparent background
       const backgroundColor = options?.backgroundColor ?? 'rgba(0, 0, 0)'; // Black background
 
       // --- Canvas Setup ---
