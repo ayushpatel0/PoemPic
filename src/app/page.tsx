@@ -37,8 +37,15 @@ export default function Home() {
       setPoemResult(result);
     } catch (err) {
       console.error("Error generating poem:", err);
-      setError(err instanceof Error ? err.message : "An unexpected error occurred while generating the poem.");
+      const errorMessage = err instanceof Error ? err.message : "An unexpected error occurred while generating the poem.";
+      // Check for specific API error message
+       if (errorMessage.includes('application/octet-stream')) {
+            setError("The uploaded image format might not be fully supported. Please try a standard format like JPG or PNG.");
+       } else {
+           setError(errorMessage);
+       }
       setPoemResult(null); // Ensure poem is cleared on error
+      setImageDataUri(null); // Reset image data URI on error
     } finally {
       setIsLoading(false);
     }
